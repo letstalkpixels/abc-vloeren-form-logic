@@ -7,8 +7,8 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-      "build": "yarn run webpack --mode=production",
-      "build:dev": "yarn run webpack --mode=development"
+    "build": "yarn run webpack --mode=production",
+    "build:dev": "yarn run webpack --mode=development"
   },
   "dependencies": {
     "ts-loader": "^9.3.1",
