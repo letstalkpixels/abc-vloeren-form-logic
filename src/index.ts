@@ -6,6 +6,9 @@ const setGtagConsentMode = (
     consents: StoreConsents,
 ) => {
     const localWindow = window as any;
+    localWindow.gtag = function () {
+        localWindow.dataLayer.push(arguments);
+    };
 
     if (!localWindow.dataLayer) {
         return;
@@ -21,7 +24,7 @@ const setGtagConsentMode = (
         security_storage: 'granted',
     };
 
-    localWindow.dataLayer.push('consent', mode, consentObject);
+    localWindow.gtag('consent', mode, consentObject);
 };
 
 (() => {
