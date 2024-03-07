@@ -22,6 +22,8 @@ const setGtagConsentMode = (
             ? 'granted'
             : 'denied',
         security_storage: 'granted',
+        ad_user_data: consents.marketing ? 'granted' : 'denied',
+        ad_personalization: consents.marketing ? 'granted' : 'denied',
     };
 
     localWindow.gtag('consent', mode, consentObject);
