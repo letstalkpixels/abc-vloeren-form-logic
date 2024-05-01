@@ -2,10 +2,7 @@ import { InputRules } from './interfaces/input-rules';
 import { SectionValidation } from './interfaces/section-validation';
 
 class FormLogic {
-    private flow: string[] = ['section-1', 'section-customer'];
-    private subFlow: string[] = [];
-    private flowIndex = 0;
-    private subFlowIndex = 0;
+    private flow: string[] = ['section-1'];
     private form: HTMLFormElement | null = null;
     private debug = true;
 
@@ -25,8 +22,16 @@ class FormLogic {
 
     private setupListeners() {
         this.form?.querySelectorAll('input').forEach(input => {
-            input.addEventListener('change', event => {
+            input.addEventListener('change', () => {
                 this.formChange();
+            });
+        });
+
+        this.form?.querySelectorAll('[data-section-toggle]').forEach(toggle => {
+            const toggleElement = toggle as HTMLInputElement;
+
+            toggleElement.addEventListener('change', () => {
+                this.setFlow();
             });
         });
 
@@ -34,49 +39,272 @@ class FormLogic {
             ?.querySelectorAll('[data-action]')
             .forEach((button: Element) => {
                 button.addEventListener('click', event =>
-                    this.handleButtonAction(button, event),
+                    this.handleButtonAction(button as HTMLElement, event),
                 );
+            });
+
+        this.form
+            ?.querySelectorAll('[fs-accordion-element="trigger"]')
+            .forEach(trigger => {
+                trigger.addEventListener('click', event => {
+                    const section = (event.target as HTMLElement).closest(
+                        '[data-section]',
+                    ) as HTMLElement;
+                    const isActive = trigger.classList.contains(
+                        'is-active-accordion',
+                    );
+
+                    if (isActive) {
+                        this.closeSection(section);
+                    } else {
+                        this.openSection(section);
+                    }
+                });
+            });
+
+        this.form
+            ?.querySelectorAll('[data-part-toggle]')
+            .forEach(partToggle => {
+                this.setupPartToggle(partToggle as HTMLInputElement);
+            });
+
+        this.form
+            ?.querySelectorAll('[data-section-toggle-link]')
+            .forEach(sectionToggleLink => {
+                this.setupSectionToggleLink(
+                    sectionToggleLink as HTMLInputElement,
+                );
+            });
+
+        this.form
+            ?.querySelectorAll('[data-part-choice]')
+            .forEach(partChoice => {
+                this.setupPartChoices(partChoice as HTMLInputElement);
             });
     }
 
     private formChange(): void {
-        const activeSection = this.form?.querySelector(
-            `.${this.flow[this.flowIndex]}`,
-        ) as HTMLElement;
+        // (
+        //     [
+        //         ...activeSection.querySelectorAll('[data-section-validation]'),
+        //     ] as HTMLElement[]
+        // ).forEach(validationSection => {
+        //     const validationRules = validationSection.dataset.sectionValidation;
+        //     if (!validationRules) {
+        //         return;
+        //     }
+        //     const rules = JSON.parse(
+        //         decodeURIComponent(validationRules),
+        //     ) as SectionValidation;
+        //     let sectionPassed = true;
+        //     Object.keys(rules).forEach(key => {
+        //         sectionPassed = !sectionPassed
+        //             ? sectionPassed
+        //             : this.validateInput(validationSection, key, rules[key]);
+        //     });
+        //     if (sectionPassed) {
+        //         this.log('Section passed validation!', validationSection);
+        //     } else {
+        //         this.log('Section failed validation!', validationSection);
+        //     }
+        //     this.toggleButtonState(validationSection, sectionPassed);
+        // });
+    }
 
-        if (!activeSection) {
-            return;
-        }
+    private setFlow(): void {
+        const sectionToggles = this.form?.querySelectorAll(
+            '[data-section-toggle]',
+        );
 
-        (
-            [
-                ...activeSection.querySelectorAll('[data-section-validation]'),
-            ] as HTMLElement[]
-        ).forEach(validationSection => {
-            const validationRules = validationSection.dataset.sectionValidation;
+        this.flow = ['section-1'];
 
-            if (!validationRules) {
+        [...(sectionToggles ?? [])].forEach(toggle => {
+            const toggleElement = toggle as HTMLInputElement;
+            const toggleKey = toggleElement.dataset.sectionToggle;
+            let sectionIdentifier = toggleKey;
+
+            if (toggleKey?.indexOf('=') ?? -1) {
+                const [sectionKey] = toggleKey?.split('=') ?? [];
+
+                sectionIdentifier = sectionKey;
+            }
+
+            const toggleSection = this.form?.querySelector(
+                `[data-section="${sectionIdentifier}"]`,
+            );
+
+            if (sectionIdentifier !== toggleKey) {
+                const linkedCheckbox = this.form?.querySelector(
+                    `[data-section-toggle-link="${toggleKey}"]`,
+                ) as HTMLInputElement;
+
+                if (
+                    linkedCheckbox &&
+                    linkedCheckbox.checked !== toggleElement.checked
+                ) {
+                    linkedCheckbox.parentElement?.click();
+                }
+            }
+
+            if (
+                !toggleSection ||
+                !sectionIdentifier ||
+                !toggleElement.checked ||
+                this.flow.includes(sectionIdentifier)
+            ) {
                 return;
             }
 
-            const rules = JSON.parse(
-                decodeURIComponent(validationRules),
-            ) as SectionValidation;
-            let sectionPassed = true;
+            this.flow.push(sectionIdentifier);
+        });
 
-            Object.keys(rules).forEach(key => {
-                sectionPassed = !sectionPassed
-                    ? sectionPassed
-                    : this.validateInput(validationSection, key, rules[key]);
-            });
+        if (this.flow.length > 1) {
+            this.flow.push('section-comments');
+            this.flow.push('section-customer');
+        }
 
-            if (sectionPassed) {
-                this.log('Section passed validation!', validationSection);
-            } else {
-                this.log('Section failed validation!', validationSection);
+        this.renderFlow();
+    }
+
+    private renderFlow() {
+        this.form?.querySelectorAll('[data-section]').forEach(section => {
+            section.classList.add('d-none');
+        });
+
+        console.log(this.flow);
+
+        this.flow.forEach((section, index) => {
+            const sectionElement = this.form?.querySelector(
+                `[data-section="${section}"]`,
+            );
+
+            if (!sectionElement) {
+                return;
             }
 
-            this.toggleButtonState(validationSection, sectionPassed);
+            const counter = sectionElement.querySelector(
+                '[data-section-counter]',
+            ) as HTMLElement;
+
+            if (counter) {
+                counter.innerText = (index + 1).toString();
+            }
+
+            sectionElement.classList.remove('d-none');
+        });
+    }
+
+    private setupPartToggle(toggle: HTMLInputElement) {
+        const checkbox = toggle.querySelector('input[type="checkbox"]');
+        const wrapper = toggle.querySelector('.wrapper');
+
+        if (!checkbox || !wrapper) {
+            return;
+        }
+
+        checkbox.addEventListener('change', event => {
+            const checked = (event.target as HTMLInputElement).checked;
+
+            if (checked) {
+                wrapper.classList.remove('d-none');
+            } else {
+                wrapper.classList.add('d-none');
+            }
+        });
+    }
+
+    private setupPartChoices(partChoice: HTMLElement): void {
+        const input = partChoice.querySelector(
+            'input[type="radio"]',
+        ) as HTMLInputElement;
+        const wrapper = partChoice.querySelector('.wrapper');
+
+        if (!input) {
+            return;
+        }
+
+        input.addEventListener('change', () => {
+            const checked = input.checked;
+
+            const otherChoices = this.form?.querySelectorAll(
+                `input[name="${input.name}"]`,
+            );
+
+            otherChoices?.forEach(choice => {
+                const baseElement = choice.closest('[data-part-choice]');
+                const choiceWrapper = baseElement?.querySelector('.wrapper');
+
+                if (!baseElement || !choiceWrapper) {
+                    return;
+                }
+
+                choiceWrapper.classList.add('d-none');
+            });
+
+            if (!wrapper) {
+                return;
+            }
+
+            if (checked) {
+                wrapper.classList.remove('d-none');
+            } else {
+                wrapper.classList.add('d-none');
+            }
+        });
+    }
+
+    private openSection(section: HTMLElement) {
+        section.classList.add('is-active-accordion');
+        const header = section.querySelector(
+            '[fs-accordion-element="trigger"]',
+        );
+        header?.classList.add('is-active-accordion');
+        const content = section.querySelector(
+            '[fs-accordion-element="content"]',
+        );
+        content?.classList.add('is-active-accordion');
+        const arrow = section.querySelector('[fs-accordion-element="arrow"]');
+        arrow?.classList.add('is-active-accordion');
+
+        // Timeout to allow the content to expand before scrolling
+        setTimeout(() => {
+            section.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+                inline: 'nearest',
+            });
+        }, 50);
+    }
+
+    private closeSection(section: HTMLElement) {
+        section.classList.remove('is-active-accordion');
+        const header = section.querySelector(
+            '[fs-accordion-element="trigger"]',
+        );
+        header?.classList.remove('is-active-accordion');
+        const content = section.querySelector(
+            '[fs-accordion-element="content"]',
+        );
+        content?.classList.remove('is-active-accordion');
+        const arrow = section.querySelector('[fs-accordion-element="arrow"]');
+        arrow?.classList.remove('is-active-accordion');
+    }
+
+    private setupSectionToggleLink(checkbox: HTMLElement): void {
+        checkbox.addEventListener('change', event => {
+            const checked = (event.target as HTMLInputElement).checked;
+            const sectionIdentifier = checkbox.dataset.sectionToggleLink;
+            const linkedCheckbox = this.form?.querySelector(
+                `[data-section-toggle="${sectionIdentifier}"]`,
+            ) as HTMLInputElement;
+
+            if (!sectionIdentifier || !linkedCheckbox) {
+                return;
+            }
+
+            if (linkedCheckbox.checked !== checked) {
+                linkedCheckbox.parentElement?.click();
+            }
         });
     }
 
@@ -144,7 +372,7 @@ class FormLogic {
         }
     }
 
-    private handleButtonAction(button: Element, event: Event) {
+    private handleButtonAction(button: HTMLElement, event: Event) {
         event.preventDefault();
 
         if (
@@ -159,208 +387,26 @@ class FormLogic {
         const action = button.getAttribute('data-action');
 
         if (action === 'next') {
-            this.goToNextInFlow();
-        } else if (action === 'back') {
-            this.goToPreviousInFlow();
+            this.goToNextInFlow(button);
         }
     }
 
-    private checkActiveQuestionForSectionPush(section?: Element | null) {
-        if (!section) {
+    private goToNextInFlow(button: HTMLElement): void {
+        const section = button.closest('[data-section]') as HTMLElement;
+        const sectionIdentifier = section.dataset.section;
+        const index = this.flow.indexOf(sectionIdentifier ?? '');
+
+        this.closeSection(section);
+
+        const nextSection = this.form?.querySelector(
+            `[data-section="${this.flow[index + 1]}"]`,
+        ) as HTMLElement;
+
+        if (!nextSection) {
             return;
         }
 
-        const inputs = section.querySelectorAll('[data-push-section]');
-
-        const sectionsToPush: string[] = [];
-
-        inputs.forEach(input => {
-            const inputElement = input as HTMLInputElement;
-
-            if (inputElement.checked) {
-                const flowPush = inputElement.dataset.pushSection;
-
-                if (flowPush && !this.flow.includes(flowPush)) {
-                    sectionsToPush.push(flowPush);
-
-                    this.log('Flow pushed', input);
-                }
-            }
-        });
-
-        this.flow.splice(this.flowIndex + 1, 0, ...sectionsToPush);
-
-        console.log(this.flow);
-    }
-
-    private goToNextInFlow() {
-        if (this.flow.length < this.flowIndex + 1) {
-            return;
-        }
-
-        const activeSection = this.form?.querySelector(
-            `[data-section="${this.flow[this.flowIndex]}"]`,
-        );
-
-        this.checkActiveQuestionForSubSectionPush(activeSection);
-
-        if (this.subFlowIndex + 1 < this.subFlow.length) {
-            this.setNextActiveSubSection();
-        } else {
-            this.checkActiveQuestionForSectionPush(activeSection);
-            this.setNextActiveSection(activeSection as HTMLElement);
-        }
-    }
-
-    private checkActiveQuestionForSubSectionPush(section?: Element | null) {
-        if (!section) {
-            return;
-        }
-
-        this.subFlow = [];
-
-        const inputs = section.querySelectorAll('[data-push-sub-section]');
-
-        let sectionsToPush: string[] = [];
-
-        inputs.forEach(input => {
-            const inputElement = input as HTMLInputElement;
-
-            if (inputElement.checked) {
-                const flowPush = inputElement.dataset.pushSubSection;
-
-                if (flowPush && !this.subFlow.includes(flowPush)) {
-                    sectionsToPush.push(flowPush);
-
-                    this.log('SubFlow pushed', input);
-                }
-            }
-        });
-
-        const subSections = section.querySelectorAll(
-            '[data-section]',
-        ) as NodeListOf<HTMLElement>;
-
-        if (subSections.length > 0) {
-            const subSection = subSections[0];
-            sectionsToPush = [
-                subSection.dataset.section ?? '',
-                ...sectionsToPush,
-            ];
-        }
-
-        this.subFlow = sectionsToPush.sort();
-
-        console.log(this.subFlow);
-    }
-
-    private setNextActiveSection(activeSection?: HTMLElement | null) {
-        const newSection = this.form?.querySelector(
-            `[data-section="${this.flow[this.flowIndex + 1]}"]`,
-        );
-
-        if (!activeSection || !newSection) {
-            return;
-        }
-
-        activeSection.classList.add('d-none');
-        newSection.classList.remove('d-none');
-
-        this.subFlow = [];
-        this.subFlowIndex = 0;
-
-        this.log('Going to next in flow', newSection);
-
-        const subSections = newSection.querySelectorAll(
-            '[data-section]',
-        ) as NodeListOf<HTMLElement>;
-
-        if (subSections.length > 0) {
-            const subSection = subSections[0];
-            this.subFlow.push(subSection.dataset.section ?? '');
-
-            subSection.classList.remove('d-none');
-        }
-
-        this.flowIndex++;
-    }
-
-    private setNextActiveSubSection() {
-        const activeSubSection = this.form?.querySelector(
-            `[data-section="${this.subFlow[this.subFlowIndex]}"]`,
-        );
-        const newSubSection = this.form?.querySelector(
-            `[data-section="${this.subFlow[this.subFlowIndex + 1]}"]`,
-        );
-
-        if (!activeSubSection || !newSubSection) {
-            return;
-        }
-
-        activeSubSection.classList.add('d-none');
-        newSubSection.classList.remove('d-none');
-
-        this.log('Going to next in sub flow', newSubSection);
-
-        this.subFlowIndex++;
-    }
-
-    private goToPreviousInFlow() {
-        if (this.flowIndex === 0) {
-            return;
-        }
-
-        const activeSection = this.form?.querySelector(
-            `[data-section="${this.flow[this.flowIndex]}"]`,
-        );
-
-        if (this.subFlowIndex > 0) {
-            const activeSubSection = this.form?.querySelector(
-                `[data-section="${this.subFlow[this.subFlowIndex]}"]`,
-            );
-            const newSubSection = this.form?.querySelector(
-                `[data-section="${this.subFlow[this.subFlowIndex - 1]}"]`,
-            );
-
-            if (!activeSubSection || !newSubSection) {
-                return;
-            }
-
-            activeSubSection.classList.add('d-none');
-            newSubSection.classList.remove('d-none');
-
-            this.log('Going to previous in sub flow', newSubSection);
-
-            this.subFlowIndex--;
-        } else {
-            const newSection = this.form?.querySelector(
-                `[data-section="${this.flow[this.flowIndex - 1]}"]`,
-            );
-
-            if (!activeSection || !newSection) {
-                return;
-            }
-
-            activeSection.classList.add('d-none');
-            newSection.classList.remove('d-none');
-
-            this.checkActiveQuestionForSubSectionPush(newSection);
-
-            if (this.subFlow.length > 0) {
-                const subSection = newSection.querySelector(
-                    `[data-section="${this.subFlow[this.subFlow.length - 1]}"]`,
-                );
-
-                if (subSection) {
-                    this.subFlowIndex = this.subFlow.length - 1;
-                    subSection.classList.remove('d-none');
-                }
-            }
-
-            this.log('Going to previous in flow', newSection);
-
-            this.flowIndex--;
-        }
+        this.openSection(nextSection);
     }
 
     private log(message: string, element?: Element) {
