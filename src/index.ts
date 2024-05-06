@@ -268,12 +268,11 @@ class FormLogic {
 
         // Timeout to allow the content to expand before scrolling
         setTimeout(() => {
-            section.scrollIntoView({
+            window.scrollTo({
+                top: section.getBoundingClientRect().top + window.scrollY - 128,
                 behavior: 'smooth',
-                block: 'start',
-                inline: 'nearest',
             });
-        }, 50);
+        }, 150);
     }
 
     private closeSection(section: HTMLElement) {
