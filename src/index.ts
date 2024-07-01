@@ -1,3 +1,4 @@
+import AddressLookup from './abilities/address-lookup';
 import { InputRules } from './interfaces/input-rules';
 import { SectionValidation } from './interfaces/section-validation';
 
@@ -423,4 +424,6 @@ class FormLogic {
 
 (() => {
     new FormLogic();
+
+    new AddressLookup().init();
 })();
