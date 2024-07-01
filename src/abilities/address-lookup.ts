@@ -20,6 +20,9 @@ export default class AddressLookup {
                 const streetResultInput = container.querySelector(
                     '[data-address-lookup="street-result"]',
                 );
+                const provinceResultInput = container.querySelector(
+                    '[data-address-lookup="province-result"]',
+                );
 
                 [zipCodeInput, houseNumberInput].forEach(element => {
                     element?.addEventListener('change', () =>
@@ -28,6 +31,7 @@ export default class AddressLookup {
                             houseNumberInput as HTMLInputElement,
                             cityResultInput as HTMLInputElement,
                             streetResultInput as HTMLInputElement,
+                            provinceResultInput as HTMLInputElement,
                         ),
                     );
                     element?.addEventListener('keyup', () =>
@@ -36,6 +40,7 @@ export default class AddressLookup {
                             houseNumberInput as HTMLInputElement,
                             cityResultInput as HTMLInputElement,
                             streetResultInput as HTMLInputElement,
+                            provinceResultInput as HTMLInputElement,
                         ),
                     );
                 });
@@ -47,6 +52,7 @@ export default class AddressLookup {
         houseNumberInput: HTMLInputElement,
         cityResultInput: HTMLInputElement,
         streetResultInput: HTMLInputElement,
+        provinceResultInput: HTMLInputElement,
     ): void {
         const zipCode = zipCodeInput?.value;
         const houseNumber = houseNumberInput?.value;
@@ -57,6 +63,7 @@ export default class AddressLookup {
                 houseNumber,
                 cityResultInput,
                 streetResultInput,
+                provinceResultInput,
             );
         }
     }
@@ -66,6 +73,7 @@ export default class AddressLookup {
         houseNumber: string,
         cityResultInput: HTMLInputElement,
         streetResultInput: HTMLInputElement,
+        provinceResultInput: HTMLInputElement,
     ): void {
         if (this.debounceTimeout) {
             clearTimeout(this.debounceTimeout);
@@ -77,6 +85,7 @@ export default class AddressLookup {
                 houseNumber,
                 cityResultInput,
                 streetResultInput,
+                provinceResultInput,
             );
         }, this.debounceTime);
     }
@@ -86,6 +95,7 @@ export default class AddressLookup {
         houseNumber: string,
         cityResultInput: HTMLInputElement,
         streetResultInput: HTMLInputElement,
+        provinceResultInput: HTMLInputElement,
     ): Promise<void> {
         const lookupUrl = `https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?fq=postcode:${zipCode
             .replace(' ', '')
@@ -110,19 +120,26 @@ export default class AddressLookup {
                 data?.response?.docs,
                 cityResultInput,
                 streetResultInput,
+                provinceResultInput,
             );
         }
     }
 
     private processLookupResult(
-        lookupResults: { woonplaatsnaam: string; straatnaam: string }[],
+        lookupResults: {
+            woonplaatsnaam: string;
+            straatnaam: string;
+            provincienaam: string;
+        }[],
         cityResultInput: HTMLInputElement,
         streetResultInput: HTMLInputElement,
+        provinceResultInput: HTMLInputElement,
     ): void {
         const [bestMatch] = lookupResults;
 
         cityResultInput!.value = bestMatch?.woonplaatsnaam ?? '';
         streetResultInput!.value = bestMatch?.straatnaam ?? '';
+        provinceResultInput!.value = bestMatch?.provincienaam ?? '';
     }
 
     private isZipCode(zipCode: string): boolean {
