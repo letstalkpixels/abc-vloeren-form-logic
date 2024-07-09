@@ -101,7 +101,7 @@ class FormLogic {
                 | undefined
         )?.forEach(input => {
             input.setAttribute('lang', 'nl-NL');
-            input.setAttribute('step', '0.1');
+            input.setAttribute('step', '0.01');
             input.setAttribute('min', '0');
             input.setAttribute('pattern', '[0-9]*+([,]?+[0-9]*)?');
             input.setAttribute('inputmode', 'decimal');
