@@ -19,6 +19,8 @@ class FormLogic {
         this.log('FormLogic initialized', this.form);
 
         this.setupListeners();
+
+        this.setupTransformers();
     }
 
     private setupListeners() {
@@ -82,6 +84,33 @@ class FormLogic {
             .forEach(partChoice => {
                 this.setupPartChoices(partChoice as HTMLInputElement);
             });
+    }
+
+    private setupTransformers(): void {
+        ['_oppervlakte', '_dikte'].forEach(suffix => {
+            this.form
+                ?.querySelectorAll(`input[name$=${suffix}]`)
+                .forEach(input => {
+                    input.setAttribute('type', 'number');
+                });
+        });
+
+        (
+            this.form?.querySelectorAll('input[type="number"]') as
+                | NodeListOf<HTMLInputElement>
+                | undefined
+        )?.forEach(input => {
+            input.setAttribute('lang', 'nl-NL');
+            input.setAttribute('step', '0.1');
+            input.setAttribute('min', '0');
+            input.setAttribute('pattern', '[0-9]*+([,]?+[0-9]*)?');
+            input.setAttribute('inputmode', 'decimal');
+
+            input.addEventListener('blur', () => {
+                const value = input.value.replace('.', ',').trim();
+                input.value = value;
+            });
+        });
     }
 
     private formChange(): void {
