@@ -105,6 +105,7 @@ class FormLogic {
             input.setAttribute('min', '0');
             input.setAttribute('pattern', '[0-9]*+([,]?+[0-9]*)?');
             input.setAttribute('inputmode', 'decimal');
+            input.setAttribute('type', 'text');
 
             input.addEventListener('blur', () => {
                 const value = input.value.replace('.', ',').trim();
