@@ -139,7 +139,9 @@ export default class AddressLookup {
 
         cityResultInput!.value = bestMatch?.woonplaatsnaam ?? '';
         streetResultInput!.value = bestMatch?.straatnaam ?? '';
-        provinceResultInput!.value = bestMatch?.provincienaam ?? '';
+        provinceResultInput!.value = (
+            bestMatch?.provincienaam ?? ''
+        ).toLocaleLowerCase();
     }
 
     private isZipCode(zipCode: string): boolean {
